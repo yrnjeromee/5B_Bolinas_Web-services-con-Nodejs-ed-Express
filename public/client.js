@@ -1,114 +1,108 @@
 // Definizione delle variabili DOM
 const todoInput = document.getElementById("todoInput");
 const insertButton = document.getElementById("insertButton");
-const todoListContainer = document.getElementById("todolist");
+const todoList = document.getElementById("todolist");
 
 let todos = []; // Lista dei task
 
 // Funzione per aggiornare la visualizzazione della lista
 const render = () => {
-    let html = '';
+    let html = "";
     todos.forEach((todo) => {
         html += `
-            <li ${todo.completed ? 'class="completed"' : ''}>
+            <li id="todo_${todo.id}" class="${todo.completed ? "completed" : ""}">
                 ${todo.name}
-                <button onclick="completeTask('${todo.id}')">Completa</button>
-                <button onclick="deleteTask('${todo.id}')">Elimina</button>
+                <button class="completato" data-id="${todo.id}">
+                    ${todo.completed ? "Completato" : "Completa"}
+                </button>
+                <button class="cancella" data-id="${todo.id}">Elimina</button>
             </li>
         `;
     });
-    todoListContainer.innerHTML = html; // Aggiorna il contenuto della lista
+    todoList.innerHTML = html;
+
+    document.querySelectorAll(".completato").forEach(button => {
+        button.onclick = () => completeTask(button.dataset.id);
+    });
+
+    document.querySelectorAll(".cancella").forEach(button => {
+        button.onclick = () => deleteTask(button.dataset.id);
+    });
 };
 
 // Funzione per inviare una nuova To-Do al server
 const send = (todo) => {
-    return fetch("/todo/add", {
-        method: 'POST',
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(todo)
+    return new Promise((resolve, reject) => {
+       fetch("/todo/add", {
+          method: 'POST',
+          headers: {
+             "Content-Type": "application/json"
+          },
+          body: JSON.stringify(todo)
+       })
+       .then((response) => response.json())
+       .then((json) => {
+          resolve(json); // risposta del server all'aggiunta
+       })
     })
-    .then(response => response.json());
-};
+ };
 
 // Funzione per caricare i To-Do dal server
 const load = () => {
-
     return new Promise((resolve, reject) => {
- 
        fetch("/todo")
- 
        .then((response) => response.json())
- 
-       .then((json) => {
- 
-          resolve(json); // risposta del server con la lista
- 
-       })
- 
+       .then(data => resolve(data));
     })
- 
- }
+ };
 
 // Aggiunge un nuovo To-Do alla lista
 insertButton.onclick = () => {
-    console.log("ciao")
-    const todo = {          
-        name: todoInput.value,
-        completed: false
-    };
-    
-    send({ todo }) // 1. Invia la nuova To-Do
-    .then(() => load()) // 2. Ricarica la lista aggiornata
-    .then((json) => { 
-        todos = json.todos;
-        todoInput.value = ""; // Svuota il campo input
-        render();  // 3. Aggiorna la visualizzazione
-    });
-};
-
-// Funzione per completare un To-Do
-const completeTask = (id) => {
-    const todo = todos.find(t => t.id === id);
-    if (todo) {
-        todo.completed = true;
-        completeTodo(todo)
-            .then(() => render());
+    const todoText = todoInput.value.trim();
+    if (!todoText) {
+        alert("Inserisci un nome valido per il TODO!");
+        return;
     }
-};
-
-// Funzione per eliminare un To-Do
-const deleteTask = (id) => {
-    deleteTodo(id)
-        .then(() => {
-            todos = todos.filter(t => t.id !== id);
+    const todo = { name: todoText, completed: false };
+    send({ todo })
+        .then(() => load())
+        .then((json) => { 
+            todos = json.todos;
+            todoInput.value = "";
             render();
         });
 };
 
 // API per completare un To-Do nel server
 const completeTodo = (todo) => {
-    return fetch("/todo/complete", {
-        method: 'PUT',
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(todo)
+    return new Promise((resolve, reject) => {
+       fetch("/todo/complete", {
+          method: 'PUT',
+          headers: {
+             "Content-Type": "application/json"
+          },
+          body: JSON.stringify(todo)
+       })
+       .then((response) => response.json())
+       .then((json) => {
+          resolve(json);
+       })
     })
-    .then(response => response.json());
-};
+ };
 
 // API per eliminare un To-Do nel server
 const deleteTodo = (id) => {
-    return fetch("/todo/" + id, {
-        method: 'DELETE',
-        headers: {
-            "Content-Type": "application/json"
-        }
+    return new Promise((resolve, reject) => {
+       fetch("/todo/"+ id , {
+          method: 'DELETE',
+          headers: {
+             "Content-Type": "application/json"
+          },
+       })
+       .then((response) => response.json())
+       .then((json) => resolve(json))
     })
-    .then(response => response.json());
-};
+ };
 
 // Aggiornamento periodico della lista
 setInterval(() => {
@@ -116,7 +110,7 @@ setInterval(() => {
         todos = json.todos;
         render();
     });
-}, 60000); // Aggiorna ogni 60 secondi
+}, 60000);
 
 // Carica la lista dei task dal server all'avvio
 load().then((json) => {

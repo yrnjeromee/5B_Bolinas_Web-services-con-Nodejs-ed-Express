@@ -1,69 +1,49 @@
-const express = require("express");
 const http = require("http");
-const bodyParser = require("body-parser");
-const path = require("path");
-
+const express = require("express");
 const app = express();
+const bodyParser = require('body-parser');
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-
-// Servire file statici dalla cartella "public"
+app.use(bodyParser.urlencoded({extended: true}));
+const path = require('path');
 app.use("/", express.static(path.join(__dirname, "public")));
 
-let todos = []; // Lista dei task
+const todos = []; // Lista dei task
 
 // Endpoint per aggiungere un nuovo To-Do
 app.post("/todo/add", (req, res) => {
-    const todo = req.body.todo;
-    if (!todo || !todo.name) {
-        return res.status(400).json({ error: "Il campo 'name' è richiesto." });
-    }
-    
+    const todo = req.body;
     todo.id = "" + new Date().getTime();
     todos.push(todo);
-    res.json({ result: "Ok", todo });
+    res.json({result: "Ok"});
 });
 
 // Endpoint per ottenere la lista dei To-Do
 app.get("/todo", (req, res) => {
-    res.json({ todos });
+    res.json({todos: todos});
 });
 
 // Endpoint per completare un To-Do
 app.put("/todo/complete", (req, res) => {
-    const todo = req.body;
-    let found = false;
-
-    todos = todos.map((element) => {
-        if (element.id === todo.id) {
-            element.completed = true;
-            found = true;
-        }
-        return element;
-    });
-
-    if (!found) {
-        return res.status(404).json({ error: "To-Do non trovato" });
+    const { id } = req.body;
+    const todo = todos.find(t => t.id === id);
+    if (!todo) {
+        return res.status(404).json({ error: "TODO non trovato" });
     }
-
+    todo.completed = !todo.completed;
     res.json({ result: "Ok" });
 });
+
 
 // Endpoint per eliminare un To-Do
 app.delete("/todo/:id", (req, res) => {
-    const id = req.params.id;
-    const initialLength = todos.length;
-    todos = todos.filter((element) => element.id !== id);
-
-    if (todos.length === initialLength) {
-        return res.status(404).json({ error: "To-Do non trovato" });
-    }
-
-    res.json({ result: "Ok" });
+    todos.splice(0, todos.length, ...todos.filter((element) => element.id !== req.params.id));
+    res.json({result: "Ok"});
 });
 
-// Avvia il server sulla porta 3000
+app.use((req, res, next) => {
+    console.log(`📥 Richiesta ricevuta: ${req.method} ${req.url}`);
+    next();
+});
+
 const server = http.createServer(app);
-server.listen(3000, () => {
-    console.log("- server running on port 3000");
-});
+server.listen(80, () => console.log("Server running..."));
