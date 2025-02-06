@@ -10,11 +10,9 @@ const render = () => {
     let html = "";
     todos.forEach((todo) => {
         html += `
-            <li id="todo_${todo.id}" class="${todo.completed ? "completed" : ""}">
+            <li id="todo_${todo.id}" class="${todo.completed ? "completed" : ""}" style="color: ${todo.completed ? 'green' : 'black'};">
                 ${todo.name}
-                <button class="completato" data-id="${todo.id}">
-                    ${todo.completed ? "Completato" : "Completa"}
-                </button>
+                ${!todo.completed ? `<button class="completato" data-id="${todo.id}">Completa</button>` : ""}
                 <button class="cancella" data-id="${todo.id}">Elimina</button>
             </li>
         `;
@@ -22,11 +20,24 @@ const render = () => {
     todoList.innerHTML = html;
 
     document.querySelectorAll(".completato").forEach(button => {
-        button.onclick = () => completeTask(button.dataset.id);
+        button.onclick = () => {
+            const id = button.dataset.id;
+            completeTodo({ id }).then(() => load().then((json) => {
+                todos = json.todos;
+                render();
+            }));
+        };
     });
 
+
     document.querySelectorAll(".cancella").forEach(button => {
-        button.onclick = () => deleteTask(button.dataset.id);
+        button.onclick = () => {
+            const id = button.dataset.id;
+            deleteTodo(id).then(() => load().then((json) => {
+                todos = json.todos;
+                render();
+            }));
+        };
     });
 };
 
@@ -64,7 +75,7 @@ insertButton.onclick = () => {
         return;
     }
     const todo = { name: todoText, completed: false };
-    send({ todo })
+    send(todo)
         .then(() => load())
         .then((json) => { 
             todos = json.todos;

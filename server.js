@@ -2,6 +2,7 @@ const http = require("http");
 const express = require("express");
 const app = express();
 const bodyParser = require('body-parser');
+const PORT = 80;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 const path = require('path');
@@ -46,4 +47,4 @@ app.use((req, res, next) => {
 });
 
 const server = http.createServer(app);
-server.listen(80, () => console.log("Server running..."));
+server.listen(PORT, () => console.log(`Server in esecuzione su http://localhost:${PORT}`));
